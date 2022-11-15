@@ -25,15 +25,9 @@ from torchvision.transforms.functional import InterpolationMode
 
 def cube_rotate(cube, angles, mode="fft"):
     new_cube = torch.zeros(cube.shape)
-
-    if mode == "fft" :
-        for ii in range(len(angles)):
-            new_cube[ii] = tensor_rotate_fft(torch.unsqueeze(cube[ii], 0), float(angles[ii]))
-    else :
-        for ii in range(len(angles)):
-            new_cube[ii] = rotate(torch.unsqueeze(cube[ii], 0),
-                                  float(angles[ii]),
-                                  InterpolationMode.LANCZOS)[0]
+    for ii in range(len(angles)):
+        new_cube[ii] = rotate(torch.unsqueeze(cube[ii], 0),float(angles[ii]),
+                                  InterpolationMode.BILINEAR)[0]
     return new_cube
 
 
@@ -75,7 +69,7 @@ def circle(shape: tuple, r: float, offset=(0.5, 0.5)):
     return 1 - M
 
 
-def GreeDS(cube, angles, r=1, l=10, pup=6, full_output=0):
+def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, full_output=0):
     """
 
     Parameters
@@ -110,7 +104,7 @@ def GreeDS(cube, angles, r=1, l=10, pup=6, full_output=0):
     angles = torch.from_numpy(angles)
 
     # Init variables
-    if full_output == 1 : iter_frames = torch.zeros((l * r,) + shape)
+    if full_output == 1 : iter_frames = torch.zeros((l * (r-r_start+1),) + shape)
     elif full_output == 2 : iter_frames = torch.zeros((r,) + shape)
     elif full_output == 3 : iter_frames = torch.zeros((l,) + shape)
 
@@ -139,10 +133,10 @@ def GreeDS(cube, angles, r=1, l=10, pup=6, full_output=0):
             x_k1, xl = GreeDS_iter(x_k, ncomp)
             x_k = x_k1.clone()
 
-            if full_output == 1 : iter_frames[(ncomp - 1) * l + (ii - 1), :, :] = x_k1
+            if full_output == 1 : iter_frames[(ncomp - r_start) * l + (ii - 1), :, :] = x_k1
             if full_output == 3 : iter_frames[ii - 1, :, :] = x_k1
 
-        if full_output == 2 : iter_frames[ncomp - 1, :, :] = x_k1
+        if full_output == 2 : iter_frames[ncomp - r_start, :, :] = x_k1
 
 
     if full_output:
