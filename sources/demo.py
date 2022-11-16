@@ -41,7 +41,7 @@ crop_size = 200
 cube = cube_crop_frames(cube, crop_size)
 
 # Greeds
-res = GreeDS(cube, angles, r=r, l=l, r_start=r_start, pup=pup_size, full_output=True)
+res = GreeDS(cube, angles, r=r, l=l, r_start=r_start, pup=pup_size, full_output=full_output)
 
 # Write results
 write_fits(dir+"GreeDS_estimation_"+str(r)+"_"+str(l)+"_"+str(r_start), res)
