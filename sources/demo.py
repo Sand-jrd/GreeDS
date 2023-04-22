@@ -23,6 +23,9 @@ dir = "your_directory"
 cube = open_fits(dir+"your_cube.fits")#[my_channel] # Must be one channel cube 
 angles = open_fits(dir+"your_PA_angles.fits")
 
+# (optional) Reference frames. Add a data-driven prior using referene frames
+ref = open_fits(dir+"your_cube_ref.fits") or None
+
 ## Set parameters
 
 r = 20  # Iteration over PCA-rank
@@ -36,12 +39,12 @@ full_output = 3 # Return estimation at each iter (needed to search opti params)
 # if 2 -> every iter over r
 # if 3 -> every iter over l
 
-# Crop you cube (optional)
+# (optional) Crop you cube 
 crop_size = 200
 cube = cube_crop_frames(cube, crop_size)
 
 # Greeds
-res = GreeDS(cube, angles, r=r, l=l, r_start=r_start, pup=pup_size, full_output=full_output)
+res = GreeDS(cube, angles, r=r, l=l, r_start=r_start, pup=pup_size, full_output=full_output, RDI=ref)
 
 # Write results
 write_fits(dir+"GreeDS_estimation_"+str(r)+"_"+str(l)+"_"+str(r_start), res)

@@ -21,12 +21,12 @@ import numpy as np
 from rotation import tensor_rotate_fft
 from torchvision.transforms.functional import rotate
 from torchvision.transforms.functional import InterpolationMode
-
+from vip_hci.fits import write_fits 
 
 def cube_rotate(cube, angles, mode="fft"):
     new_cube = torch.zeros(cube.shape)
     for ii in range(len(angles)):
-        new_cube[ii] = rotate(torch.unsqueeze(cube[ii], 0),float(angles[ii]),
+        new_cube[ii] = rotate(torch.unsqueeze(cube[ii], 0),-float(angles[ii]),
                                   InterpolationMode.BILINEAR)[0]
     return new_cube
 
@@ -69,28 +69,50 @@ def circle(shape: tuple, r: float, offset=(0.5, 0.5)):
     return 1 - M
 
 
-def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, full_output=0):
+def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, RDI=None, full_output=0, returnL=False):
     """
 
     Parameters
     ----------
     cube : numpy array
         3D cube of data. shape : (nb_frame, length, width)
+        
     angles : numpy array
         1D array of PA angle. Must be the same length as cube nb_frame
+        
     r : int
         Number of rank to iterate over. The default is 1.
+        
     l : int
         Number of iteration per rank. The default is 10.
+        
+    r_start : int
+        First rank estimate, r_start < r
+        GreeDS will iterate from rank r-start to r 
+        
     pup : int
         Raduis of the pupil mask
-    full_output : bool
-        Return the estimation at each iteration
-
+        
+    RDI : numpy array
+        3D cube of reference frames. shape = (nb_frame, length, width)
+        
+    full_output : int (0 to  3)
+        Choose to return :  
+        *  0/False -> only last estimation 
+        *  1/True  -> every iter over r*l
+        *  2       -> every iter over r
+        *  3       -> every iter over l
+        
+    returnL : bool
+        Return PSF estimation
+        
     Returns
     -------
-    iter_frames
-        Estimated circumstellar per iterations.
+    x_k [full_ouputs=False]
+        Estimated circumstellar signal. 
+        
+    iter_frames [full_ouputs=True]
+        Estimated circumstellar signal x_k for different iterations.
 
     """
 
@@ -98,11 +120,21 @@ def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, full_output=0):
     shape = cube.shape[-2:]
     len_img = shape[0]
     nb_frame = len(angles)
+    nb_frame_es = len(angles)
+
+    # RDI
+    if RDI is not None : 
+        assert(RDI.shape[-2:] == shape)
+        RDI = torch.from_numpy(RDI)
+        print("Cube filled with "+str(int(100*RDI.shape[0]/nb_frame))+" percent of RDI frames")
+        nb_frame_es = len(angles) + RDI.shape[0]
 
     # Convert to use torch
     cube = torch.from_numpy(cube)
-    angles = torch.from_numpy(angles)
 
+    angles = torch.from_numpy(angles)
+    pup = circle(shape, pup)
+    
     # Init variables
     if full_output == 1 : iter_frames = torch.zeros((l * (r-r_start+1),) + shape)
     elif full_output == 2 : iter_frames = torch.zeros((r,) + shape)
@@ -110,23 +142,30 @@ def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, full_output=0):
 
     x_k = torch.zeros(shape)
 
+
     # One iteration of greeDS
     def GreeDS_iter(x, q):
 
-        R = cube - cube_rotate(x.expand(nb_frame, len_img, len_img), angles)
+        
+        R = cube - cube_rotate(x.expand(nb_frame, len_img, len_img), -angles)
 
-        U, Sigma, V = torch.pca_lowrank(R.view(nb_frame, len_img * len_img), q=q, niter=4, center=False)
-        L = (U @ torch.diag(Sigma) @ V.T).reshape(nb_frame, len_img, len_img)
+        if RDI is not None :
+            R = torch.cat((R,RDI))
 
-        S_der = cube_rotate(cube - L, -angles)
+        U, Sigma, V = torch.pca_lowrank(R.view(nb_frame_es, len_img * len_img), q=q, niter=5, center=False)
+        L = (U @ torch.diag(Sigma) @ V.T).reshape(nb_frame_es, len_img, len_img)
 
-        frame = torch.mean(S_der, axis=0) * circle(shape, pup)
+        if RDI is not None : L = L[:nb_frame]
+
+        S_der = cube_rotate(cube - L, angles)
+
+        frame = torch.mean(S_der, axis=0)*pup
         frame *= frame > 0
 
         return frame, L
 
     ## Main loop over N_comp and nb_rank.
-    for ncomp in range(1, r + 1):
+    for ncomp in range(r_start, r + 1):
 
         for ii in range(1, l + 1):
 
@@ -138,7 +177,14 @@ def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, full_output=0):
 
         if full_output == 2 : iter_frames[ncomp - r_start, :, :] = x_k1
 
-
+    
+    if returnL :
+        
+        if full_output:
+            return iter_frames.numpy(), xl.numpy()
+        else:
+            return x_k.numpy(), xl.numpy()
+        
     if full_output:
         return iter_frames.numpy()
     else:
