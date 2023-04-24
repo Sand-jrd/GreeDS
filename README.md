@@ -1,9 +1,9 @@
 # GreeDS
 
 `I-PCA` (Iterative Principal Component Analysis) tools developed to process ADI cube
-Refactored implementation of the original code from [Pairet et al](https://arxiv.org/pdf/2008.05170.pdf)
 
-This package contain only one function. It is [very simple to use](#Usage/Exemple)
+
+Refactored implementation of the original code from [Pairet et al](https://arxiv.org/pdf/2008.05170.pdf)
 
 Updtates to `MAYONNAISE` version :
   - Can be used without the optimization part (`MAYONNAISE`).
@@ -79,13 +79,13 @@ That's it. Call `GreeDS` and get your results
 
 Also check out other package for Exoplanet/disk direct imaging
 
+- [MUSTARD](https://github.com/Sand-jrd/mustard)
 Inverse problem approch to process ADI cube
-[MUSTARD](https://github.com/Sand-jrd/mustard)
 
+- [Slides](https://docs.google.com/presentation/d/1aPjWJUztfjROtt8BPi8uh6X-vBD5dc81wQ1MhMGGOas/edit) 
 Doc about the maths behind the algorithms (GreeDS/MUSTARD) and comparison
-[Slides](https://docs.google.com/presentation/d/1aPjWJUztfjROtt8BPi8uh6X-vBD5dc81wQ1MhMGGOas/edit) 
 
-[VIP - Vortex Image Processing package](https://github.com/vortex-exoplanet/VIP)
+- [VIP - Vortex Image Processing package](https://github.com/vortex-exoplanet/VIP)
 Tools for high-contrast imaging of exoplanets and circumstellar disks.
 
 
