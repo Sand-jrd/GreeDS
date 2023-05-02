@@ -3,7 +3,7 @@
 `I-PCA` (Iterative Principal Component Analysis) tools developed to process ADI cube
 
 
-Refactored implementation of the original code from [Pairet et al](https://arxiv.org/pdf/2008.05170.pdf)
+Refactored implementation of the [original code](https://github.com/bpairet/mayo_hci) from [Pairet et al](https://arxiv.org/pdf/2008.05170.pdf)
 
 Updtates to `MAYONNAISE` version :
   - Can be used without the optimization part (`MAYONNAISE`).
