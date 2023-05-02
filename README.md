@@ -82,12 +82,13 @@ Also check out other package for Exoplanet/disk direct imaging
 - [MUSTARD](https://github.com/Sand-jrd/mustard)
 Inverse problem approch to process ADI cube
 
-- [Slides](https://docs.google.com/presentation/d/1aPjWJUztfjROtt8BPi8uh6X-vBD5dc81wQ1MhMGGOas/edit) 
-Doc about the maths behind the algorithms (GreeDS/MUSTARD) and comparison
-
 - [VIP - Vortex Image Processing package](https://github.com/vortex-exoplanet/VIP)
 Tools for high-contrast imaging of exoplanets and circumstellar disks.
 
+
+Also see doc about the maths behind the algorithms (GreeDS/MUSTARD) and their comparison :
+
+- [Slides](https://docs.google.com/presentation/d/1aPjWJUztfjROtt8BPi8uh6X-vBD5dc81wQ1MhMGGOas/edit) 
 
 ## Feedback/Support
 
