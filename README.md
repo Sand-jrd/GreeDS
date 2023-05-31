@@ -6,13 +6,11 @@
 Refactored implementation of the [original code](https://github.com/bpairet/mayo_hci) from [Pairet et al](https://arxiv.org/pdf/2008.05170.pdf)
 
 Updtates to `MAYONNAISE` version :
-  - Can be used without the optimization part (`MAYONNAISE`).
-  - Option r_start
+  - Can be used indepedently of the optimization part (`MAYONNAISE`).
   - No Deprecated packages (rotation without Kornia)
+  - Option r_start
   - full_outputs options
-
-Version without deprecated dependency
-
+  - RDI option
 
 ## Install package
 
