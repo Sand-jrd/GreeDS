@@ -50,23 +50,16 @@ angles = open_fits("your_PA_angles.fits")
 Set parameters:
 
 ```python
-r = 20  # Iteration over PCA-rank
-l = 20  # Iteration per rank
+r = 10  # Iteration over PCA-rank
+l = "incr"  # Iteration per rank
 r_start = 1  # PCA-rank to start iteration (good for faint signals)
-pup_size = 6  # Radius of numerical mask to hide corona
-    
-# Outputs (default 1) 
-full_output = 3 
-#  0/False -> only last estimation 
-#  1/True  -> every iter over r*l
-#  2       -> every iter over r
-#  3       -> every iter over l
+pup_size = 6  # Radius of numerical mask to hide coro
 ```
 
 That's it. Call `GreeDS` and get your results:
 
 ```python
-res = GreeDS(cube, angles, r=r, l=l, r_start=r_start, pup=pup_size, full_output=full_output)
+res = GreeDS(cube, angles, r=r, l=l, r_start=r_start, pup=pup_size)
 ```
 
 ## Related
