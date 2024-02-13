@@ -32,7 +32,7 @@ ref = open_fits(dir+"your_cube_ref.fits") or None
 # %% Set parameters
 
 r = 20  # Iteration over PCA-rank
-l = 20  # Iteration per rank
+l = "incr"  # Iteration per rank
 r_start  = 1 # PCA-rank to start iteration (good for faint signal)
 pup_size = 6 # Raduis of numerical mask to hide coro
 
