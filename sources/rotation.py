@@ -3,6 +3,7 @@ import torch
 import torch.fft as tf
 from vip_hci.var import frame_center
 
+
 def tensor_rotate_fft(tensor: torch.Tensor, angle: float) -> torch.Tensor:
     """ Rotates Tensor using Fourier transform phases:
         Rotation = 3 consecutive lin. shears = 3 consecutive FFT phase shifts
