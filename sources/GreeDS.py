@@ -23,14 +23,14 @@ from torchvision.transforms.functional import (rotate, InterpolationMode)
 
 def cube_rotate(cube, angles, fft=False):
     new_cube = torch.zeros(cube.shape)
-    if fft:
+    if not fft:
         for ii in range(len(angles)):
             new_cube[ii] = rotate(torch.unsqueeze(cube[ii], 0), -float(angles[ii]),
                                   InterpolationMode.BILINEAR)[0]
         return new_cube
     else:
         for ii in range(len(angles)):
-            new_cube[ii] = tensor_rotate_fft(cube[ii], float(angles[ii]))
+            new_cube[ii] = tensor_rotate_fft((torch.unsqueeze(cube[ii], 0), float(angles[ii]))
         return new_cube
 
 
