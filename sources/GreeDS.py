@@ -30,7 +30,7 @@ def cube_rotate(cube, angles, fft=False):
         return new_cube
     else:
         for ii in range(len(angles)):
-            new_cube[ii] = tensor_rotate_fft((torch.unsqueeze(cube[ii], 0), -float(angles[ii]))
+            new_cube[ii] = tensor_rotate_fft(torch.unsqueeze(cube[ii], 0), -float(angles[ii]))
         return new_cube
 
 
