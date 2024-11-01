@@ -26,12 +26,12 @@ cd GreeDS
 Install dependencies:
 
 ```bash
-py setup.py install
+py ./sources/setup.py install
 ```
 
 ## Usage/Example
 
-This package contains only one function. All necessary information is in the function comments. Follow instructions in the [demo](demo.py) to test the algorithm with your own datasets.
+This package contains only one function. All necessary information is in the function comments. Follow instructions in the [demo](demo.py) or [notebooek](demo.ipynb) to test the algorithm with your own datasets.
 
 Import the function:
 
@@ -45,18 +45,22 @@ Load your dataset and call the function:
 from vip_hci.fits import open_fits
 cube = open_fits("your_cube.fits")
 angles = open_fits("your_PA_angles.fits")
+
+# Optional
+ref = open_fits("your_refs.fits")
+
 ```
 
 Set parameters:
 
 ```python
 r = 10  # Iteration over PCA-rank
-l = "incr"  # Iteration per rank
+l = 10  # Iteration per rank
 r_start = 1  # PCA-rank to start iteration (good for faint signals)
-pup_size = 6  # Radius of numerical mask to hide coro
+pup_size = 3  # Radius of numerical mask to hide coro
 ```
 
-That's it. Call `GreeDS` and get your results:
+Call `GreeDS` and get your results:
 
 ```python
 res = GreeDS(cube, angles, r=r, l=l, r_start=r_start, pup=pup_size)

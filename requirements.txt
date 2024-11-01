@@ -2,4 +2,6 @@ matplotlib
 numpy
 torch
 torchvision
-
+photutils
+setuptools
+pip

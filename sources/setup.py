@@ -9,7 +9,7 @@ except:
     reqs = [str(ir.requirement) for ir in reqs]
 
 setup(
-    version="1.0",
+    version="2.0",
     name="GreeDS",
     install_requires=reqs,
     packages=find_packages()
