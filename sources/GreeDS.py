@@ -19,6 +19,8 @@ Require the dependancy torch and kornia
 import torch
 import numpy as np
 from rotation import tensor_rotate_fft
+import photutils
+import matplotlib.pyplot as plt
 from torchvision.transforms.functional import (rotate, InterpolationMode)
 
 def cube_rotate(cube, angles, fft=False):
@@ -33,26 +35,25 @@ def cube_rotate(cube, angles, fft=False):
             new_cube[ii] = tensor_rotate_fft(torch.unsqueeze(cube[ii], 0), -float(angles[ii]))
         return new_cube
 
-
 def circle(shape: tuple, r: float, offset=(0.5, 0.5)):
     """ Create circle of 0 in a 2D matrix of ones"
-       
+
        Parameters
        ----------
 
        shape : tuple
            shape x,y of the matrix
-       
+
        r : float
            radius of the circle
        offset : (optional) float
            offset from the center
-       
+
        Returns
        -------
        M : ndarray
            Zeros matrix with a circle filled with ones
-       
+
     """
     assert (len(shape) == 2 or len(shape) == 3)
     if isinstance(offset, (int, float)): offset = (offset, offset)
@@ -70,6 +71,10 @@ def circle(shape: tuple, r: float, offset=(0.5, 0.5)):
     if nb_f: M = np.tile(M, (nb_f, 1, 1))
 
     return 1 - M
+
+class GtolNotReached(Exception):
+    """Considere increasing gtol or chosing another set of parameters"""
+    pass
 
 
 def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, refs=None, x_start=None, full_output=0, returnL=False,
@@ -195,6 +200,7 @@ def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, refs=None, x_start=None, f
     if returntype == "numpy":
         x_k = x_k.numpy()
         xl = xl.numpy()
+
     if returnL:
         if full_output:
             return iter_frames, iter_L
@@ -205,3 +211,171 @@ def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, refs=None, x_start=None, f
         return iter_frames
     else:
         return x_k
+
+# %%
+
+def find_optimal_iter(res, noise_lim=30, singal_lim=(10, 30), apps=None, gtol=1e-2, win=2, plot=False, saveplot=False,
+                      returnSNR=False, app_size=8, l=10, r_start=1, r=10):
+    """Find the optimal iteration in two steps : 1-Ensuring signal have converged 2-Minimizing SNR
+
+    Parameters
+    ----------
+
+    res : numpy array
+        3D cube of GreeDS estimate. shape : (nb_frame, length, width)
+
+    noise_lim : int [default=30]
+        Limit raduis of noise region
+
+    singal_lim : tuple [default=(10,30)] or "app"
+        Inner and outter raduis of signal region
+
+    gtol : int [gtol=0.1]
+        Gradient tolerance
+
+    win : int [default=3]
+        Moving average window
+
+
+    Returns
+    -------
+
+    res[indx] : numpy array
+        Optimal frame estimate
+
+    indx : int
+        Optimal index frame
+
+    """
+    size = res.shape[1]
+    pup = circle((size, size), 8) - circle((size, size), size // 2)
+
+    ## Defining Noise and signal region & Computing flx variation
+
+    if str(noise_lim) == "app":
+        img = res[3]
+        plt.title("Click to define apperture of noise region")
+        plt.imshow(pup * img, vmax=np.percentile(img, 99))
+        apps = plt.ginput(n=1)[0]
+        siftx = apps[0]
+        sifty = apps[1]
+
+        fwhm_aper = photutils.CircularAperture([siftx, sifty], app_size)
+        noise = fwhm_aper.to_mask().to_image(img.shape)
+        flx_noise = np.array(
+            [photutils.aperture_photometry(frame, fwhm_aper, method='exact')["aperture_sum"] for frame in
+             res]).flatten()
+        plt.close("all")
+    else:
+        noise = circle((size, size), size // 2) - circle((size, size), size // 2 - noise_lim)
+        flx_noise = np.sum(res * noise, axis=(1, 2)) / np.sum(noise)
+
+    if str(singal_lim) == "app":
+        img = res[10]
+        plt.figure("Click to define apperture of signal region")
+        plt.title("Click to define apperture of signal region")
+        plt.imshow(pup * img, vmax=np.percentile(img, 99.99))
+        if apps is None: apps = plt.ginput(n=1)[0]
+        print(apps)
+        siftx = apps[0]
+        sifty = apps[1]
+        fwhm_aper = photutils.CircularAperture([siftx, sifty], app_size)
+        signal = fwhm_aper.to_mask().to_image(img.shape)
+        flx_sig = np.array([photutils.aperture_photometry(frame, fwhm_aper, method='exact')["aperture_sum"] for frame in
+                            res]).flatten()
+        plt.close("Click to define apperture of signal region")
+
+    else:
+        signal = circle((size, size), singal_lim[1]) - circle((size, size), singal_lim[0])
+        flx_sig = np.sum(res * signal, axis=(1, 2)) / np.sum(signal)
+
+    # Computing gradient to find the convergence of signal
+    grad = (flx_sig[0:-1] - flx_sig[1:]) / np.mean(flx_sig)
+    if win: grad = np.convolve(grad, np.ones(win), 'valid') / win  # moving avg grads
+
+    valid_conv = np.flatnonzero(np.convolve(abs(grad) < gtol, np.ones(win, dtype=int)) == win)
+    if len(valid_conv) < 1:
+        while len(valid_conv) < 1:
+            gtol *= 2
+            print("gtol too small, increasing tolerernce :  {:2e}".format(gtol))
+            valid_conv = np.flatnonzero(np.convolve(abs(grad) < gtol, np.ones(win, dtype=int)) == win)
+            if gtol > 1: valid_conv = [len(grad) + 2 - win - 1]
+
+    conv_indx = valid_conv[0] - 2 + win
+
+    SNR = flx_sig / flx_noise
+    indx = np.argmax(SNR[conv_indx:]) + conv_indx
+
+    minortick = np.array(range(len(res)))
+    if l == "incr":
+        majortick = []
+        tmp = 0
+        for k in range(0, r - r_start):
+            majortick.append(tmp + k)
+            tmp = tmp + k
+        majortick = np.array(majortick)
+    else:
+        majortick = np.array(range(0, r - r_start)) * l
+
+    majroticklab = ["rank " + str(k) for k in range(r_start, r)]
+
+    if plot or saveplot:
+        if not plot: plt.ioff()
+        plt.close("Find Optimal Iteration")
+        plt.figure("Find Optimal Iteration", (16, 9))
+        point_param = {'color': "black", 'markersize': 7, 'marker': "o"}
+        text_param = {'color': "black", 'weight': "bold", 'size': 10, 'xytext': (-10, 20),
+                      'textcoords': 'offset points'}
+        plt.subplot(3, 2, 1), plt.imshow(noise), plt.title("Noise")
+        plt.subplot(3, 2, 2), plt.imshow(signal), plt.title("Signal")
+
+        ax = plt.subplot(3, 2, 3)
+        plt.plot(flx_sig / np.mean(flx_sig), label="Variation gradient")
+        plt.plot([conv_indx], [flx_sig[conv_indx] / np.mean(flx_sig)], **point_param)
+        plt.annotate('Convergence', xy=(indx, grad[conv_indx]), **text_param)
+        plt.legend(loc="lower right")
+        ax.set_xticks(minortick, minor=True)  # labels=np.array(list(range(1,10,3))*10)
+        ax.tick_params(axis='x', which='minor', length=3, width=1, colors="gray", pad=1, labelsize=8)
+        ax.tick_params(axis='x', which='major', length=5, width=1, colors='r', labelrotation=30, labelsize=10)
+        ax.set_xticks(majortick, labels=majroticklab, minor=False)
+
+        ax = plt.subplot(3, 2, 5)
+        plt.plot(grad, label="Variation gradient")
+        plt.plot([gtol] * len(grad), color="red", label="tolerance")
+        plt.plot([-gtol] * len(grad), color="red")
+        plt.plot([conv_indx], [grad[conv_indx]], **point_param)
+        plt.annotate(f'Convergence {conv_indx}', xy=(conv_indx, grad[conv_indx]), **text_param)
+        plt.legend(loc="lower right")
+        ax.set_xticks(minortick, minor=True)  # labels=np.array(list(range(1,10,3))*10)
+        ax.tick_params(axis='x', which='minor', length=3, width=1, colors="gray", pad=1, labelsize=8)
+        ax.tick_params(axis='x', which='major', length=5, width=1, colors='r', labelrotation=30, labelsize=10)
+        ax.set_xticks(majortick, labels=majroticklab, minor=False)
+
+        ax = plt.subplot(3, 2, 4)
+        plt.plot(flx_sig / np.mean(flx_sig), color="tab:orange", label="RELATIVE Signal variation")
+        plt.plot(flx_noise / np.mean(flx_noise), color="tab:blue", label="RELATIVE Noise variation")
+        plt.plot([indx], [flx_sig[indx] / np.mean(flx_sig)], **point_param)
+        plt.annotate('Max SNR', xy=(indx, flx_sig[indx] / np.mean(flx_sig)), **text_param)
+        plt.legend(loc="lower right")
+        ax.set_xticks(minortick, minor=True)  # labels=np.array(list(range(1,10,3))*10)
+        ax.tick_params(axis='x', which='minor', length=3, width=1, colors="gray", pad=1, labelsize=8)
+        ax.tick_params(axis='x', which='major', length=5, width=1, colors='r', labelrotation=30, labelsize=10)
+        ax.set_xticks(majortick, labels=majroticklab, minor=False)
+
+        ax = plt.subplot(3, 2, 6)
+        plt.plot(SNR, label="SNR"),
+        plt.plot([indx], [SNR[indx]], **point_param)
+        plt.annotate(f'Max SNR {indx}', xy=(indx, SNR[indx]), **text_param)
+        plt.legend(loc="lower right")
+        ax.set_xticks(minortick, minor=True)  # labels=np.array(list(range(1,10,3))*10)
+        ax.tick_params(axis='x', which='minor', length=3, width=1, colors="gray", pad=1, labelsize=8)
+        ax.tick_params(axis='x', which='major', length=5, width=1, colors='r', labelrotation=30, labelsize=10)
+        ax.set_xticks(majortick, labels=majroticklab, minor=False)
+
+        if saveplot: plt.savefig(saveplot + ".png")
+        if not plot: plt.close("all")
+
+    if returnSNR:
+        return res[indx], indx, SNR[indx], np.mean(grad[conv_indx:])
+    else:
+        return res[indx], indx
