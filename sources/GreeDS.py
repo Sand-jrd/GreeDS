@@ -18,10 +18,9 @@ Require the dependancy torch and kornia
 
 import torch
 import numpy as np
-from .rotation import tensor_rotate_fft
+from rotation import tensor_rotate_fft
 from torchvision.transforms.functional import rotate
 from torchvision.transforms.functional import InterpolationMode
-from vip_hci.fits import write_fits
 import photutils
 import matplotlib.pyplot as plt
 
@@ -66,14 +65,14 @@ def circle(shape: tuple, r: float, offset=(0.5, 0.5)):
 
 def cube_rotate(cube, angles, fft=False):
     new_cube = torch.zeros(cube.shape)
-    if fft:
+    if not fft:
         for ii in range(len(angles)):
             new_cube[ii] = rotate(torch.unsqueeze(cube[ii], 0), -float(angles[ii]),
                                   InterpolationMode.BILINEAR)[0]
         return new_cube
     else:
         for ii in range(len(angles)):
-            new_cube[ii] = tensor_rotate_fft(cube[ii], -float(angles[ii]))
+            new_cube[ii] = tensor_rotate_fft(torch.unsqueeze(cube[ii], 0), -float(angles[ii]))
         return new_cube
 
 
@@ -380,6 +379,7 @@ def GreeDS(cube, angles, r=1, l=10, r_start=1, pup=6, refs=None, x_start=None, f
     if returntype == "numpy":
         x_k = x_k.numpy()
         xl = xl.numpy()
+
     if returnL:
         if full_output:
             return iter_frames, iter_L
@@ -479,13 +479,16 @@ def GreeDSRDI(cube, angles, ref, r=1, l=2, pup=6, full_output=0):
 
     x_k = torch.zeros(shape)
 
-    U, Sigma, V = torch.pca_lowrank(ref.reshape(nb_frame_es, len_img * len_img), q=r, niter=1, center=False)
+    iter_frames = []
+    iter_L = []
 
     # One iteration of greeDS
-    def GreeDS_iter(x):
+    def GreeDS_iter(x, ncomp):
+        
+        U, Sigma, V = torch.pca_lowrank(ref.reshape(nb_frame_es, len_img * len_img), q=ncomp, niter=1, center=False)
 
         R = cube - cube_rotate(x.expand(nb_frame, len_img, len_img), -angles)
-        Ur, Sigmar, Vr = torch.pca_lowrank(R.reshape(nb_frame, len_img * len_img), q=r, niter=1, center=False)
+        Ur, Sigmar, Vr = torch.pca_lowrank(R.reshape(nb_frame, len_img * len_img), q=ncomp, niter=1, center=False)
         L = (Ur @ torch.diag(Sigmar) @ V.T).reshape(nb_frame, len_img, len_img)
 
         L *= L > 0
@@ -495,15 +498,20 @@ def GreeDSRDI(cube, angles, ref, r=1, l=2, pup=6, full_output=0):
         frame *= frame > 0
 
         return frame, L
-
-    for ii in range(1, l + 1):
-
-        x_k1, xl = GreeDS_iter(x_k)
-        x_k = x_k1.clone()
-        if full_output: iter_frames[ii - 1, :, :] = x_k
+    
+    for ncomp in range(1, r + 1):
+        for ii in range(1, l + 1):
+    
+            x_k1, xl = GreeDS_iter(x_k, ncomp)
+            x_k = x_k1.clone()
+            if full_output: 
+                iter_frames.append(x_k1.numpy())
+                iter_L.append(xl.numpy())
 
     if full_output:
-        return iter_frames.numpy()
+        iter_frames = np.array(iter_frames)
+        iter_L = np.array(iter_L)
+        return iter_frames, iter_L
     else:
         return x_k.numpy(), xl.numpy()
 
@@ -564,3 +572,4 @@ def RDI(cube, angles, ref, r=3, pup=6):
     frame *= frame > 0
 
     return frame.numpy(), L.numpy()
+

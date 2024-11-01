@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from pip._internal.req import parse_requirements
 
 
-reqs = parse_requirements("./requirements.txt", session=False)
+reqs = parse_requirements("../requirements.txt", session=False)
 try:
     reqs = [str(ir.req) for ir in reqs]
 except:

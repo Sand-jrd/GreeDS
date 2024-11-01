@@ -1,7 +1,47 @@
 import numpy as np
 import torch
 import torch.fft as tf
-from vip_hci.var import frame_center
+
+def frame_center(array, verbose=False):
+    """
+    Return the coordinates y,x of the frame(s) center.
+    If odd: dim/2-0.5
+    If even: dim/2
+
+    Parameters
+    ----------
+    array : 2d/3d/4d numpy ndarray
+        Frame or cube.
+    verbose : bool optional
+        If True the center coordinates are printed out.
+
+    Returns
+    -------
+    cy, cx : int
+        Coordinates of the center.
+
+    """
+    if array.ndim == 2:
+        shape = array.shape
+    elif array.ndim == 3:
+        shape = array[0].shape
+    elif array.ndim == 4:
+        shape = array[0, 0].shape
+    else:
+        raise ValueError('`array` is not a 2d, 3d or 4d array')
+
+    cy = shape[0] / 2
+    cx = shape[1] / 2
+
+    if shape[0] % 2:
+        cy -= 0.5
+    if shape[1] % 2:
+        cx -= 0.5
+
+    if verbose:
+        print('Center px coordinates at x,y = ({}, {})'.format(cx, cy))
+
+    return int(cy), int(cx)
 
 
 def tensor_rotate_fft(tensor: torch.Tensor, angle: float) -> torch.Tensor:
