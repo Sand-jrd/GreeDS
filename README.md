@@ -11,22 +11,10 @@ Updates :
 
 ## Install package
 
-Clone the project:
+Install package with pip:
 
 ```bash
-git clone https://github.com/Sand-jrd/mustard
-```
-
-Go to the project directory:
-
-```bash
-cd GreeDS
-```
-
-Install dependencies:
-
-```bash
-py ./sources/setup.py install
+pip install GreeDS
 ```
 
 ## Usage/Example
