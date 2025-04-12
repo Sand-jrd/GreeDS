@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 from pip._internal.req import parse_requirements
 
 
@@ -9,13 +9,13 @@ except:
     reqs = [str(ir.requirement) for ir in reqs]
 
 setup(
-    version="2.0",
+    version="2.2",
     name="GreeDS",  
     description='This package is a ADI or ARDI sequence processing tool that aim to distangle extended signal (like disks) from quasi-static speakels) using iterative PCA',
     url='https://github.com/Sand-jrd/GreeDS',
     author='Sandrine Juillard',
     author_email='sjuillard@uliege.be',
-    packages=find_packages(),
+    py_modules=["GreeDS","rotation"],
     install_requires=reqs,
     classifiers=[
         'Intended Audience :: Science/Research',
