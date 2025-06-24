@@ -19,7 +19,7 @@ pip install GreeDS
 
 ## Usage/Example
 
-This package contains only one function. All necessary information is in the function comments. Follow instructions in the [demo](demo.py) or [notebooek](demo.ipynb) to test the algorithm with your own datasets.
+This package contains only one function. All necessary information is in the function comments. Follow instructions in the [demo](sources/demo.py) to test the algorithm with your own datasets.
 
 Import the function:
 
@@ -58,13 +58,12 @@ res = GreeDS(cube, angles, r=r, l=l, r_start=r_start, pup=pup_size)
 
 Also check out other packages for Exoplanet/disk direct imaging:
 
-- [MUSTARD](https://github.com/Sand-jrd/mustard): Inverse problem approach to process ADI cube.
 - [VIP - Vortex Image Processing package](https://github.com/vortex-exoplanet/VIP): Tools for high-contrast imaging of exoplanets and circumstellar disks.
+- [MUSTARD](https://github.com/Sand-jrd/mustard): Inverse problem approach to process ADI cube.
 
 Also see docs about the maths behind the algorithms (GreeDS/MUSTARD) and their comparison:
 
 - [Inverse-problem versus principal component analysis methods for angular differential imaging of circumstellar disks. The mustard algorithm](https://ui.adsabs.harvard.edu/abs/2023A%26A...679A..52J/abstract)
-- [Slides](https://docs.google.com/presentation/d/1aPjWJUztfjROtt8BPi8uh6X-vBD5dc81wQ1MhMGGOas/edit)
 
 ## Feedback/Support
 
